@@ -1,0 +1,26 @@
+.venv
+*.iml
+.idea
+.python-version
+.env
+__pycache__
+htmlcov
+.coverage
+pytest-report
+version-info.json
+*.egg-info
+config-local.yml
+working_data
+source_data
+screenshots
+output
+.claude
+CLAUDE.md
+spec.yml
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

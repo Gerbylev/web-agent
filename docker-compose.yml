@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  gpt-app:
+    build: .
+    container_name: gpt-app
+    env_file:
+      - .env.docker
+    volumes:
+      - ./task.txt:/app/task.txt:ro
+      - ./output:/app/output
