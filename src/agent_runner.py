@@ -14,7 +14,7 @@ from utils.log import get_logger
 log = get_logger()
 
 
-async def take_debug_screenshot(browser: PlaywrightController, step: int, stage: str) -> str:
+async def take_screenshot(browser: PlaywrightController, step: int, stage: str) -> str:
     filename = f"{CONFIG.output_dir}/{stage}_{step}.png" if step else f"{CONFIG.output_dir}/{stage}.png"
     return await browser.get_screenshot(filename, save_to_disk=True)
 
@@ -35,7 +35,7 @@ async def execute_step(browser: PlaywrightController, graph, task: str, step_num
     start_time = time.time()
     log.info(f"Выполняем шаг {step_num}/{total_steps}: {task}")
 
-    screenshot_before = await take_debug_screenshot(browser, step_num, "step_before")
+    screenshot_before = await take_screenshot(browser, step_num, "step_before")
 
     initial_state = AgentState(
         task=task,
@@ -52,7 +52,7 @@ async def execute_step(browser: PlaywrightController, graph, task: str, step_num
     )
 
     result = await graph.ainvoke(initial_state, {"recursion_limit": 100})
-    await take_debug_screenshot(browser, step_num, "step_after")
+    await take_screenshot(browser, step_num, "step_after")
 
     execution_time = time.time() - start_time
     step_result = create_step_result(step_num, total_steps, task, result, execution_time)
@@ -65,6 +65,13 @@ async def execute_step(browser: PlaywrightController, graph, task: str, step_num
     log.info(f"Шаг {step_num} завершен за {execution_time:.1f}с")
     return True
 
+async def verify_final_result_step(browser: PlaywrightController, task_data, metrics: ExecutionMetrics) -> Dict:
+    log.info("Проверяем финальный результат...")
+
+    final_screenshot = await take_screenshot(browser, 0, "final_result")
+    final_screenshot_b64 = encode_image(final_screenshot)
+
+    return await verify_final_result(screenshot=final_screenshot_b64, expected_result=task_data.result, all_history=metrics.get_history())
 
 async def run_all_tasks(task_data) -> Tuple[ExecutionMetrics, Dict]:
     metrics = ExecutionMetrics()
@@ -81,7 +88,6 @@ async def run_all_tasks(task_data) -> Tuple[ExecutionMetrics, Dict]:
 
             await asyncio.sleep(1)
 
-        # Проверяем финальный результат
         verification = await verify_final_result_step(browser, task_data, metrics)
 
     except Exception as e:
@@ -96,10 +102,3 @@ async def run_all_tasks(task_data) -> Tuple[ExecutionMetrics, Dict]:
     return metrics, verification
 
 
-async def verify_final_result_step(browser: PlaywrightController, task_data, metrics: ExecutionMetrics) -> Dict:
-    log.info("Проверяем финальный результат...")
-
-    final_screenshot = await take_debug_screenshot(browser, 0, "final_result")
-    final_screenshot_b64 = encode_image(final_screenshot)
-
-    return await verify_final_result(screenshot=final_screenshot_b64, expected_result=task_data.result, all_history=metrics.get_history())
